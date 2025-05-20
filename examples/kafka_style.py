@@ -29,4 +29,4 @@ if __name__ == "__main__":
     
     for message in consumer:
         print(f"Consumed: topic={message.topic}, key={message.key}, "
-                          f"value={message.value}, timestamp={message.timestamp}")
+            f"value={message.value}, timestamp={message.timestamp} , offset = {message.offset}")

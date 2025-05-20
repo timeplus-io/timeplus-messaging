@@ -13,6 +13,7 @@ class TimeplusRecord:
     timestamp: Optional[int] = None
     headers: Optional[Dict[str, Any]] = None
 
+
     def __post_init__(self):
         if self.timestamp is None:
             self.timestamp = int(time.time() * 1000)  # milliseconds

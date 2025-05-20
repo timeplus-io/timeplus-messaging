@@ -61,16 +61,19 @@ class TimeplusConsumer(ABC):
         
         # Thread tracking
         self._topic_threads = {}
+        
+        # Offset tracking
+        self._commit_offsets = {}
     
     def _consume_stream(self, topic: str):
         """Internal method to consume from a stream"""
         try:
             # Determine the starting point based on auto_offset_reset
             if self.auto_offset_reset == "earliest":
-                query = f"SELECT _tp_time, _key, _value, _headers FROM {topic} WHERE _tp_time >= earliest_ts()"
+                query = f"SELECT _tp_time, _key, _value, _headers, _tp_sn FROM {topic} WHERE _tp_time >= earliest_ts()"
                 self._logger.debug(f"Consume stream {topic} from earliest sql: {query}")
             else:  # latest
-                query = f"SELECT _tp_time, _key, _value, _headers FROM {topic} WHERE _tp_time >= now()"
+                query = f"SELECT _tp_time, _key, _value, _headers, _tp_sn FROM {topic} WHERE _tp_time >= now()"
                 self._logger.debug(f"Consume stream {topic} from latest, sql: {query}")
             
             # Use execute_iter for streaming consumption
@@ -90,7 +93,7 @@ class TimeplusConsumer(ABC):
                 
                 self._logger.debug(f"Get one row from {topic}")
                 # Parse the row
-                timestamp, key, value, headers_str = row
+                timestamp, key, value, headers_str , sn = row
                 
                 # Convert timestamp to milliseconds
                 ts_ms = int(timestamp.timestamp() * 1000) if timestamp else None
@@ -112,6 +115,7 @@ class TimeplusConsumer(ABC):
                     topic=topic,
                     value=parsed_value,
                     key=key if key else None,
+                    offset=sn,
                     timestamp=ts_ms,
                     headers=headers
                 )
@@ -127,6 +131,8 @@ class TimeplusConsumer(ABC):
                 
                 # Add to queue
                 self._message_queue.put(record)
+                
+                self._commit_offsets[topic] = sn # TODO: commit offset to Timeplus stream, so it can resume from that offset
                         
         except Exception as e:
             self._logger.error(f"Error consuming from {topic}: {e}")
