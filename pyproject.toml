@@ -1,0 +1,9 @@
+[project]
+name = "timeplus-messaging"
+version = "0.1.0"
+description = "a messaging interface build on top of timeplus"
+readme = "README.md"
+requires-python = ">=3.13"
+dependencies = [
+    "proton-driver>=0.2.13",
+]
