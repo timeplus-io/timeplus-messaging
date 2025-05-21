@@ -152,6 +152,7 @@ class TimeplusConsumer(ABC):
             self._consumer_thread = threading.Thread(target=self._consumer_loop)
             self._consumer_thread.daemon = True
             self._consumer_thread.start()
+            print("consumer thread started in poll")
         
         records = {}
         timeout_sec = timeout_ms / 1000.0
@@ -268,6 +269,7 @@ class SingleTopicConsumer(TimeplusConsumer):
             self._consumer_thread = threading.Thread(target=self._consumer_loop)
             self._consumer_thread.daemon = True
             self._consumer_thread.start()
+            print("note stread started in __iter__")
         
         while True:
             records = self.poll()
@@ -303,7 +305,6 @@ class MultiTopicConsumer(TimeplusConsumer):
         
         # Consumer state specific to multi-topic
         self._topics = set()
-        self._rebalance_listener = None
         
         self._topic_callbacks = {}
         

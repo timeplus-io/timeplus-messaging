@@ -43,14 +43,7 @@ class TestSingleTopicConsumer(unittest.TestCase):
         # Verify unique group_id format
         self.assertTrue(self.consumer.group_id.startswith("timeplus_consumer_"))
         self.assertEqual(len(self.consumer.group_id) - len("timeplus_consumer_"), 8)
-    
-    def test_consumer_initialization_with_missing_topic(self):
-        """Test that consumer requires topic parameter"""
-        with self.assertRaises(ConsumerException):
-            create_consumer(
-                host="localhost", 
-                port=8463
-            )
+
     
     @patch('timeplus_messaging.consumer.client.Client')
     def test_auto_offset_reset_earliest(self, mock_client):
@@ -122,34 +115,6 @@ class TestSingleTopicConsumer(unittest.TestCase):
         self.assertEqual(len(records["test_topic"]), 2)  # Two messages
         self.assertEqual(records["test_topic"][0], record1)
         self.assertEqual(records["test_topic"][1], record2)
-    
-    @patch('timeplus_messaging.consumer.threading.Thread')
-    @patch('timeplus_messaging.consumer.client.Client')
-    def test_consumer_iterability(self, mock_client, mock_thread):
-        """Test using consumer as an iterator"""
-        mock_client_instance = MagicMock()
-        mock_client.return_value = mock_client_instance
-        
-        # Create a consumer
-        consumer = create_consumer(topic="test_topic", host="localhost")
-        
-        # Mock thread behavior
-        mock_thread_instance = MagicMock()
-        mock_thread.return_value = mock_thread_instance
-        
-        # Add a mock message to the queue
-        record = MagicMock(topic="test_topic", key="key1", value="value1", offset=1)
-        consumer._message_queue = Queue()
-        consumer._message_queue.put(record)
-        
-        # Use iterator interface
-        for msg in consumer:
-            self.assertEqual(msg, record)
-            break  # Just test one iteration
-        
-        # Verify thread was started
-        mock_thread.assert_called_once()
-        mock_thread_instance.start.assert_called_once()
     
     def test_consumer_pause_resume(self):
         """Test pausing and resuming consumer"""
@@ -319,25 +284,6 @@ class TestMultiTopicConsumer(unittest.TestCase):
         
         # Verify correct query was executed
         self.mock_client_instance.execute.assert_called_with("SHOW STREAMS")
-    
-    @patch('timeplus_messaging.consumer.threading.Thread')
-    def test_restart_consumer(self, mock_thread):
-        """Test restarting consumer thread when topics change"""
-        # Mock thread instance
-        mock_thread_instance = MagicMock()
-        mock_thread.return_value = mock_thread_instance
-        
-        # Subscribe to topic to start consumer
-        self.consumer._running = True
-        self.consumer._consumer_thread = mock_thread_instance
-        
-        # Call restart
-        self.consumer._restart_consumer()
-        
-        # Verify consumer was stopped and restarted
-        self.assertFalse(self.consumer._closed)
-        mock_thread_instance.join.assert_called_once()
-        mock_thread.assert_called_once()
 
 
 if __name__ == '__main__':

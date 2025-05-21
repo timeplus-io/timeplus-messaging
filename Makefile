@@ -4,3 +4,6 @@ timeplus:
 
 dev:
 	uv pip install --editable .
+
+test:
+	uv run pytest

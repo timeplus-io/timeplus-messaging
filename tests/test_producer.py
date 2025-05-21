@@ -123,9 +123,9 @@ class TestTimeplusProducer(unittest.TestCase):
         
         # Verify the insert SQL contains correct values
         calls = self.mock_client_instance.execute.call_args_list
-        self.assertEqual(len(calls), 2)  # One for check, one for insert
+        self.assertEqual(len(calls), 3)  # One for check, one for create, one for insert
         
-        insert_call = calls[1]
+        insert_call = calls[2]
         insert_sql = insert_call[0][0]
         params = insert_call[0][1]
         
@@ -148,7 +148,7 @@ class TestTimeplusProducer(unittest.TestCase):
         result = future.result()
         
         calls = self.mock_client_instance.execute.call_args_list
-        insert_call = calls[1]
+        insert_call = calls[2]
         params = insert_call[0][1]
         
         self.assertEqual(params['value'], json.dumps(value))

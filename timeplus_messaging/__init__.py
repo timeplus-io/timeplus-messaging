@@ -7,9 +7,9 @@ def create_producer(**config) -> TimeplusProducer:
     return TimeplusLogProducer(**config)
 
 
-def create_consumer(**config) -> SingleTopicConsumer:
+def create_consumer(topic, **config) -> SingleTopicConsumer:
     """Create a Timeplus consumer with the given configuration"""
-    return SingleTopicConsumer(**config)
+    return SingleTopicConsumer(topic, **config)
 
 def create_subscribe_consumer(**config) -> MultiTopicConsumer:
     """Create a Timeplus consumer with the given configuration"""
