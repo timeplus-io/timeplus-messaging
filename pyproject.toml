@@ -17,13 +17,15 @@ classifiers = [
     "Operating System :: OS Independent",
 ]
 dependencies = [
-    "proton-driver",
+    "proton-driver"
 ]
 
 [project.optional-dependencies]
 dev = [
     "pytest",
     "pytest-cov",
+    "flake8>=5.0.4",
+    "black>=23.3.0"
 ]
 
 [tool.pytest.ini_options]

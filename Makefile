@@ -15,8 +15,8 @@ publish:
 	uv publish
 
 lint:
-	flake8 ./src --count --select=E9,F63,F7,F82 --ignore=E501,W293 --show-source --statistics
-	flake8 ./src --count --exit-zero --max-complexity=10 --ignore=E501,W503,W293 --max-line-length=127 --statistics
+	flake8 ./timeplus_messaging --count --select=E9,F63,F7,F82 --ignore=E501,W293 --show-source --statistics
+	flake8 ./timeplus_messaging --count --exit-zero --max-complexity=10 --ignore=E501,W503,W293 --max-line-length=127 --statistics
 
 format:
-	black ./src
+	black ./timeplus_messaging
