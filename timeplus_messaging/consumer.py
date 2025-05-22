@@ -11,7 +11,7 @@ from queue import Queue, Empty
 import uuid
 from abc import ABC, abstractmethod
 
-from proton_driver import client, connect
+from proton_driver import client
 from timeplus_messaging.record import TimeplusRecord
 
 class ConsumerException(Exception):
@@ -70,10 +70,10 @@ class TimeplusConsumer(ABC):
         try:
             # Determine the starting point based on auto_offset_reset
             if self.auto_offset_reset == "earliest":
-                query = f"SELECT _tp_time, _key, _value, _headers, _tp_sn FROM {topic} WHERE _tp_time >= earliest_ts()"
+                query = f"SELECT _tp_time, _key, _value, _headers, _tp_sn, _tp_shard FROM {topic} WHERE _tp_time >= earliest_ts()"
                 self._logger.debug(f"Consume stream {topic} from earliest sql: {query}")
             else:  # latest
-                query = f"SELECT _tp_time, _key, _value, _headers, _tp_sn FROM {topic} WHERE _tp_time >= now()"
+                query = f"SELECT _tp_time, _key, _value, _headers, _tp_sn, _tp_shard FROM {topic} WHERE _tp_time >= now()"
                 self._logger.debug(f"Consume stream {topic} from latest, sql: {query}")
             
             # Use execute_iter for streaming consumption
@@ -93,7 +93,7 @@ class TimeplusConsumer(ABC):
                 
                 self._logger.debug(f"Get one row from {topic}")
                 # Parse the row
-                timestamp, key, value, headers_str , sn = row
+                timestamp, key, value, headers_str , sn , partition = row
                 
                 # Convert timestamp to milliseconds
                 ts_ms = int(timestamp.timestamp() * 1000) if timestamp else None
@@ -116,6 +116,7 @@ class TimeplusConsumer(ABC):
                     value=parsed_value,
                     key=key if key else None,
                     offset=sn,
+                    partition=partition,
                     timestamp=ts_ms,
                     headers=headers
                 )
@@ -152,7 +153,7 @@ class TimeplusConsumer(ABC):
             self._consumer_thread = threading.Thread(target=self._consumer_loop)
             self._consumer_thread.daemon = True
             self._consumer_thread.start()
-            print("consumer thread started in poll")
+            self._logger.debug("consumer thread started in poll")
         
         records = {}
         timeout_sec = timeout_ms / 1000.0
@@ -269,7 +270,7 @@ class SingleTopicConsumer(TimeplusConsumer):
             self._consumer_thread = threading.Thread(target=self._consumer_loop)
             self._consumer_thread.daemon = True
             self._consumer_thread.start()
-            print("note stread started in __iter__")
+            self._logger.debug("note stread started in __iter__")
         
         while True:
             records = self.poll()

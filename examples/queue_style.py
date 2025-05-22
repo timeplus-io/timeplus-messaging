@@ -29,7 +29,7 @@ if __name__ == "__main__":
     
     def on_event(record):
         print(f"Consumed: topic={record.topic}, key={record.key}, "
-              f"value={record.value}, timestamp={record.timestamp}")    
+              f"value={record.value}, timestamp={record.timestamp}, partition={record.partition}")    
     
     consumer.subscribe("test_topic", on_event)
     

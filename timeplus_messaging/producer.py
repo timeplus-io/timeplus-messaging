@@ -7,7 +7,7 @@ from typing import Dict, Optional, Any
 from concurrent.futures import ThreadPoolExecutor, Future
 
 # Import proton driver
-from proton_driver import client, connect
+from proton_driver import client
 from proton_driver.errors import Error as ProtonError
 
 from timeplus_messaging.record import ProducerRecord, TimeplusRecord

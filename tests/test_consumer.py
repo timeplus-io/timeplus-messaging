@@ -64,7 +64,7 @@ class TestSingleTopicConsumer(unittest.TestCase):
         consumer._consume_stream("test_topic")
         
         # Check that the correct query was executed
-        expected_query = "SELECT _tp_time, _key, _value, _headers, _tp_sn FROM test_topic WHERE _tp_time >= earliest_ts()"
+        expected_query = "SELECT _tp_time, _key, _value, _headers, _tp_sn, _tp_shard FROM test_topic WHERE _tp_time >= earliest_ts()"
         mock_client_instance.execute_iter.assert_called_with(expected_query)
     
     @patch('timeplus_messaging.consumer.client.Client')
@@ -86,7 +86,7 @@ class TestSingleTopicConsumer(unittest.TestCase):
         consumer._consume_stream("test_topic")
         
         # Check that the correct query was executed
-        expected_query = "SELECT _tp_time, _key, _value, _headers, _tp_sn FROM test_topic WHERE _tp_time >= now()"
+        expected_query = "SELECT _tp_time, _key, _value, _headers, _tp_sn, _tp_shard FROM test_topic WHERE _tp_time >= now()"
         mock_client_instance.execute_iter.assert_called_with(expected_query)
     
     @patch('timeplus_messaging.consumer.client.Client')
