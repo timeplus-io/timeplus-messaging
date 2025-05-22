@@ -33,6 +33,7 @@ class TimeplusConsumer(ABC):
         database: str = "default",
         group_id: Optional[str] = None,
         auto_offset_reset: str = "latest",
+        partition: int | None = None,
         **kwargs,
     ):
         """Initialize the Timeplus consumer"""
@@ -43,6 +44,7 @@ class TimeplusConsumer(ABC):
         self.database = database
         self.group_id = group_id or f"timeplus_consumer_{uuid.uuid4().hex[:8]}"
         self.auto_offset_reset = auto_offset_reset
+        self.partition = partition
 
         # Client for metadata operations
         self.client = client.Client(
@@ -73,12 +75,28 @@ class TimeplusConsumer(ABC):
         """Internal method to consume from a stream"""
         try:
             # Determine the starting point based on auto_offset_reset
-            if self.auto_offset_reset == "earliest":
-                query = f"SELECT _tp_time, _key, _value, _headers, _tp_sn, _tp_shard FROM {topic} WHERE _tp_time >= earliest_ts()"
-                self._logger.debug(f"Consume stream {topic} from earliest sql: {query}")
-            else:  # latest
-                query = f"SELECT _tp_time, _key, _value, _headers, _tp_sn, _tp_shard FROM {topic} WHERE _tp_time >= now()"
-                self._logger.debug(f"Consume stream {topic} from latest, sql: {query}")
+            if self.partition is None:
+                if self.auto_offset_reset == "earliest":
+                    query = f"SELECT _tp_time, _key, _value, _headers, _tp_sn, _tp_shard FROM {topic} WHERE _tp_time >= earliest_ts()"
+                    self._logger.debug(
+                        f"Consume stream {topic} from earliest sql: {query}"
+                    )
+                else:  # latest
+                    query = f"SELECT _tp_time, _key, _value, _headers, _tp_sn, _tp_shard FROM {topic} WHERE _tp_time >= now()"
+                    self._logger.debug(
+                        f"Consume stream {topic} from latest, sql: {query}"
+                    )
+            else:
+                if self.auto_offset_reset == "earliest":
+                    query = f"SELECT _tp_time, _key, _value, _headers, _tp_sn, _tp_shard FROM {topic} WHERE _tp_time >= earliest_ts() and _tp_shard = {self.partition}"
+                    self._logger.debug(
+                        f"Consume stream {topic} from earliest sql: {query}"
+                    )
+                else:  # latest
+                    query = f"SELECT _tp_time, _key, _value, _headers, _tp_sn, _tp_shard FROM {topic} WHERE _tp_time >= now() and _tp_shard = {self.partition}"
+                    self._logger.debug(
+                        f"Consume stream {topic} from latest, sql: {query}"
+                    )
 
             # Use execute_iter for streaming consumption
             rows = self.client.execute_iter(query)
@@ -239,6 +257,7 @@ class SingleTopicConsumer(TimeplusConsumer):
         database: str = "default",
         group_id: Optional[str] = None,
         auto_offset_reset: str = "latest",
+        partition: int | None = None,
         **kwargs,
     ):
         """Initialize the Timeplus consumer with a specific topic"""
@@ -250,6 +269,7 @@ class SingleTopicConsumer(TimeplusConsumer):
             database=database,
             group_id=group_id,
             auto_offset_reset=auto_offset_reset,
+            partition=partition,
             **kwargs,
         )
 
@@ -306,6 +326,7 @@ class MultiTopicConsumer(TimeplusConsumer):
         database: str = "default",
         group_id: Optional[str] = None,
         auto_offset_reset: str = "latest",
+        partition: int | None = None,
         **kwargs,
     ):
         """Initialize the Timeplus consumer"""
@@ -317,6 +338,7 @@ class MultiTopicConsumer(TimeplusConsumer):
             database=database,
             group_id=group_id,
             auto_offset_reset=auto_offset_reset,
+            partition=partition,
             **kwargs,
         )
 
