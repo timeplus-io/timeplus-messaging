@@ -1,14 +1,12 @@
 import json
 import time
 import logging
-from abc import abstractmethod
 
 from typing import Dict, Optional, Any
 from concurrent.futures import ThreadPoolExecutor, Future
 
 # Import proton driver
 from proton_driver import client
-from proton_driver.errors import Error as ProtonError
 
 from timeplus_messaging.record import ProducerRecord
 
@@ -67,10 +65,6 @@ class TimeplusProducer:
         # Stream schemas cache
         self._stream_schemas: Dict[str, Dict] = {}
 
-    @abstractmethod
-    def _ensure_stream_exists(self, topic: str, schema: Optional[Dict] = None):
-        pass
-
     def send(
         self,
         topic: str,
@@ -111,9 +105,6 @@ class TimeplusProducer:
     def _send_record(self, record: ProducerRecord) -> Dict:
         """Internal method to send a record"""
         try:
-            # Ensure stream exists
-            self._ensure_stream_exists(record.topic)
-
             # Prepare the data
             timestamp = record.timestamp or int(time.time() * 1000)
             headers_json = json.dumps(record.headers or {})
@@ -170,31 +161,3 @@ class TimeplusLogProducer(TimeplusProducer):
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
         self._logger = logging.getLogger(__name__)
-
-    def _ensure_stream_exists(self, topic: str, schema: Optional[Dict] = None):
-        """Ensure that a stream exists, create it if it doesn't"""
-        try:
-            # Check if stream exists
-            result = self.client.execute(f"SHOW STREAMS LIKE '{topic}'")
-            if not result:
-                # Stream doesn't exist, create it
-                if schema:
-                    columns = []
-                    for col_name, col_type in schema.items():
-                        columns.append(f"{col_name} {col_type}")
-                    columns_def = ", ".join(columns)
-                else:
-                    # Default schema for generic messaging
-                    columns_def = (
-                        "_key string DEFAULT '', "
-                        "_value string, "
-                        "_headers string DEFAULT '{}'"
-                    )  # _tp_time and _tp_sn are default internal columns, no need create explicitly
-
-                create_sql = f"CREATE STREAM IF NOT EXISTS {topic} ({columns_def})"
-                self.client.execute(create_sql)
-                self._logger.info(f"Created stream: {topic}")
-
-        except ProtonError as e:
-            self._logger.error(f"Error ensuring stream exists: {e}")
-            raise ProducerException(f"Failed to create stream {topic}: {e}")

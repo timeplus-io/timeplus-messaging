@@ -35,76 +35,6 @@ class TestTimeplusProducer(unittest.TestCase):
         self.assertEqual(self.producer.user, "default")
         self.assertEqual(self.producer.database, "default")
     
-    @patch('timeplus_messaging.producer.client.Client')
-    def test_ensure_stream_exists_check(self, mock_client):
-        """Test that _ensure_stream_exists checks if stream exists"""
-        mock_client_instance = MagicMock()
-        mock_client.return_value = mock_client_instance
-        
-        # Mock the stream exists
-        mock_client_instance.execute.return_value = [("test_topic",)]
-        
-        producer = TimeplusLogProducer(host="localhost")
-        producer._ensure_stream_exists("test_topic")
-        
-        # Verify SHOW STREAMS was called
-        mock_client_instance.execute.assert_called_with("SHOW STREAMS LIKE 'test_topic'")
-    
-    @patch('timeplus_messaging.producer.client.Client')
-    def test_ensure_stream_exists_create(self, mock_client):
-        """Test that _ensure_stream_exists creates stream if not exists"""
-        mock_client_instance = MagicMock()
-        mock_client.return_value = mock_client_instance
-        
-        # Mock stream doesn't exist, then create succeeds
-        mock_client_instance.execute.side_effect = [
-            [],  # No stream found
-            None  # Create successful
-        ]
-        
-        producer = TimeplusLogProducer(host="localhost")
-        producer._ensure_stream_exists("test_topic")
-        
-        # Verify CREATE STREAM was called
-        expected_sql = (
-            "CREATE STREAM IF NOT EXISTS test_topic ("
-            "_key string DEFAULT '', "
-            "_value string, "
-            "_headers string DEFAULT '{}')"
-        )
-        mock_client_instance.execute.assert_called_with(expected_sql)
-    
-    @patch('timeplus_messaging.producer.client.Client')
-    def test_ensure_stream_exists_with_schema(self, mock_client):
-        """Test that _ensure_stream_exists creates stream with custom schema"""
-        mock_client_instance = MagicMock()
-        mock_client.return_value = mock_client_instance
-        
-        # Mock stream doesn't exist, then create succeeds
-        mock_client_instance.execute.side_effect = [
-            [],  # No stream found
-            None  # Create successful
-        ]
-        
-        schema = {
-            "user_id": "string",
-            "event_type": "string",
-            "timestamp": "datetime64"
-        }
-        
-        producer = TimeplusLogProducer(host="localhost")
-        producer._ensure_stream_exists("test_topic", schema)
-        
-        # Verify CREATE STREAM was called with custom schema
-        calls = mock_client_instance.execute.call_args_list
-        create_call = calls[1]
-        create_sql = create_call[0][0]
-        
-        self.assertIn("CREATE STREAM IF NOT EXISTS test_topic", create_sql)
-        self.assertIn("user_id string", create_sql)
-        self.assertIn("event_type string", create_sql)
-        self.assertIn("timestamp datetime64", create_sql)
-    
     def test_send_method(self):
         """Test sending a message"""
         # Setup mock response
@@ -123,9 +53,9 @@ class TestTimeplusProducer(unittest.TestCase):
         
         # Verify the insert SQL contains correct values
         calls = self.mock_client_instance.execute.call_args_list
-        self.assertEqual(len(calls), 3)  # One for check, one for create, one for insert
+        self.assertEqual(len(calls), 1)  # one for insert
         
-        insert_call = calls[2]
+        insert_call = calls[0]
         insert_sql = insert_call[0][0]
         params = insert_call[0][1]
         
@@ -148,7 +78,7 @@ class TestTimeplusProducer(unittest.TestCase):
         result = future.result()
         
         calls = self.mock_client_instance.execute.call_args_list
-        insert_call = calls[2]
+        insert_call = calls[0]
         params = insert_call[0][1]
         
         self.assertEqual(params['value'], json.dumps(value))
